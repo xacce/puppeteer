@@ -1,0 +1,29 @@
+{
+    "name": "com.xacce.puppeteer",
+    "references": [
+        "Unity.Transforms",
+        "Unity.Burst",
+        "Unity.Entities",
+        "Unity.Mathematics",
+        "Unity.Collections",
+        "Unity.AI.Navigation",
+        "Unity.Entities.Hybrid",
+        "com.xacce.susanin.runtime",
+        "com.xacce.introvert",
+        "com.xacce.spatialhashing",
+        "com.xacce.troupe",
+        "com.xacce.blobactor.runtime",
+        "com.xacce.gameready.runtime",
+        "com.xacce.core.runtime",
+        "NavMeshDots.Runtime"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
