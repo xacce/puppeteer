@@ -1,23 +1,22 @@
-﻿using BlobActor.Runtime;
+﻿using Core.Runtime;
 using GameReady.Runtime;
 using Introvert.RVO2;
-using Jobs;
 using SpatialHashing.Uniform;
-using Susanin.Systems;
-using Troupe.Runtime;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
 using Unity.Transforms;
 using UnityEngine.Experimental.AI;
+using Xacce.BlobActor.Runtime;
+using Xacce.Introvert.Runtime.PolyObstacle;
+using Xacce.Introvert.Runtime.RVO2;
 
-namespace Introvert.Systems
+namespace Xacce.Puppeteer.Runtime.Systems
 {
-
     [BurstCompile]
     [UpdateInGroup(typeof(InitializationSystemGroup))]
-    [UpdateAfter(typeof(XaNavMeshPathfindingSystem))]
-    public partial struct Rvo2System : ISystem
+    [UpdateAfter(typeof(PuppetterComputeNavMeshMovementSystem))]
+    public partial struct PuppeteerComputeAvoidanceSystem : ISystem
     {
         public void OnCreate(ref SystemState state)
         {
@@ -36,25 +35,12 @@ namespace Introvert.Systems
         public void OnUpdate(ref SystemState state)
         {
             _lookups.Update(ref state);
-            var ecbSingleton = SystemAPI.GetSingleton<EndInitializationEntityCommandBufferSystem.Singleton>();
-            state.Dependency = new LazyFormationNavMeshInitializeJob()
-            {
-                ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter(),
-                actorRo = _lookups.actorRo,
-                navMeshQuery = _navMeshQuery,
-            }.ScheduleParallel(state.Dependency);
-            state.Dependency = new PredifinedFormationJob()
-            {
-                deltaTime = SystemAPI.Time.DeltaTime,
-                localToWorldRo = _lookups.localToWorldRo,
-                informationLookupRw = _lookups.inFormationRw,
-                deadRo = _lookups.deadRo,
-                ecb = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged).AsParallelWriter(),
-            }.ScheduleParallel(state.Dependency);
-
+            // var ecbSingleton = SystemAPI.GetSingleton<EndInitializationEntityCommandBufferSystem.Singleton>();
             state.Dependency = new IntrovertRvo2Job()
             {
-                actorRuntimeLookupRo = _lookups.actorRuntimeRo,
+                actorFlagsRo = _lookups.actorFlagsRo,
+                actorLimitsRo = _lookups.actorLimitsRo,
+                dynamicRo = _lookups.dynamicObjectVelocityRo,
                 timeStep = SystemAPI.Time.DeltaTime,
                 rvoAgentRw = _lookups.rvo2AgentRw,
                 localToWorldRo = _lookups.localToWorldRo,
@@ -68,8 +54,6 @@ namespace Introvert.Systems
                     uniformSpatialCellRo = _lookups.uniformSpatialCellRo,
                 },
             }.ScheduleParallel(state.Dependency);
-
-
         }
 
         [BurstCompile]
@@ -79,32 +63,29 @@ namespace Introvert.Systems
             [ReadOnly] public ComponentLookup<UniformSpatialDatabase> uniformSpatialDatabaseRo;
             [ReadOnly] public BufferLookup<UniformSpatialElement> uniformSpatialElementRo;
             [ReadOnly] public BufferLookup<UniformSpatialCell> uniformSpatialCellRo;
-            [ReadOnly] public ComponentLookup<PolyObstacle.PolyObstacle> polyObstacleRo;
-            [ReadOnly] public ComponentLookup<Actor> actorRo;
-
-            [ReadOnly] public ComponentLookup<ActorRuntime> actorRuntimeRo;
-
+            [ReadOnly] public ComponentLookup<PolyObstacle> polyObstacleRo;
+            [ReadOnly] public ComponentLookup<BlobActor.Runtime.BlobActor> actorRo;
+            [ReadOnly] public ComponentLookup<BlobActorFlags> actorFlagsRo;
+            [ReadOnly] public ComponentLookup<BlobActorLimits> actorLimitsRo;
+            [ReadOnly] public ComponentLookup<DynamicObjectVelocity> dynamicObjectVelocityRo;
             [ReadOnly] public ComponentLookup<Dead> deadRo;
 
 
-            public ComponentLookup<InFormation> inFormationRw;
-
-
-            public ComponentLookup<IntrovertRvoAgent> rvo2AgentRw;
+            public ComponentLookup<IntrovertAgent> rvo2AgentRw;
 
             public Lookups(ref SystemState state) : this()
             {
-                rvo2AgentRw = state.GetComponentLookup<IntrovertRvoAgent>(false);
+                rvo2AgentRw = state.GetComponentLookup<IntrovertAgent>(false);
                 localToWorldRo = state.GetComponentLookup<LocalToWorld>(true);
                 uniformSpatialCellRo = state.GetBufferLookup<UniformSpatialCell>(true);
                 uniformSpatialElementRo = state.GetBufferLookup<UniformSpatialElement>(true);
                 uniformSpatialDatabaseRo = state.GetComponentLookup<UniformSpatialDatabase>(true);
-                polyObstacleRo = state.GetComponentLookup<PolyObstacle.PolyObstacle>(true);
-                actorRuntimeRo = state.GetComponentLookup<ActorRuntime>(true);
-                actorRo = state.GetComponentLookup<Actor>(true);
-                inFormationRw = state.GetComponentLookup<InFormation>(false);
+                polyObstacleRo = state.GetComponentLookup<PolyObstacle>(true);
+                actorFlagsRo = state.GetComponentLookup<BlobActorFlags>(true);
+                actorLimitsRo = state.GetComponentLookup<BlobActorLimits>(true);
+                dynamicObjectVelocityRo = state.GetComponentLookup<DynamicObjectVelocity>(true);
+                actorRo = state.GetComponentLookup<BlobActor.Runtime.BlobActor>(true);
                 deadRo = state.GetComponentLookup<Dead>(true);
-
             }
 
 
@@ -117,10 +98,11 @@ namespace Introvert.Systems
                 uniformSpatialElementRo.Update(ref state);
                 uniformSpatialDatabaseRo.Update(ref state);
                 polyObstacleRo.Update(ref state);
-                actorRuntimeRo.Update(ref state);
                 actorRo.Update(ref state);
-                inFormationRw.Update(ref state);
                 deadRo.Update(ref state);
+                actorFlagsRo.Update(ref state);
+                actorLimitsRo.Update(ref state);
+                dynamicObjectVelocityRo.Update(ref state);
             }
         }
 

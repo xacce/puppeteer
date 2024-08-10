@@ -1,18 +1,19 @@
-﻿using Jobs;
-using NavMeshDots.Runtime;
+﻿using NavMeshDots.Runtime;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
 using Unity.Jobs;
 using UnityEngine.Experimental.AI;
+using Xacce.Susanin.Runtime;
+using Xacce.Susanin.Runtime.Jobs;
 
-namespace Susanin.Systems
+namespace Xacce.Puppeteer.Runtime.Systems
 {
     [UpdateInGroup(typeof(InitializationSystemGroup))]
     [UpdateAfter(typeof(NavMeshDotsManagedSystem))]
     [BurstCompile]
-    public unsafe partial struct XaNavMeshPathfindingSystem : ISystem
+    public unsafe partial struct PuppetterComputeNavMeshMovementSystem : ISystem
     {
         private const int MAX_PATH_NODES_COUNT = 4096;
         private NativeQueue<int> _pool;
@@ -84,7 +85,7 @@ namespace Susanin.Systems
 
                 var query = _queries->ElementAt(i);
                 _handles.Add(
-                    new ProcessQueriesJob()
+                    new SusaninProcessQueriesJob()
                     {
                         ecb = ecbWriter,
                         max = MAX_ITERATIONS,
@@ -95,7 +96,7 @@ namespace Susanin.Systems
                     }.Schedule(state.Dependency));
             }
             state.Dependency = JobHandle.CombineDependencies(_handles.AsArray());
-            state.Dependency = new SeeekerJob()
+            state.Dependency = new SusaninSeeekerJob()
             {
                 query = _baseQuery,
                 pathRequestEntity = _requestsEntity,
